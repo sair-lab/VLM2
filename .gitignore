@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.env
+.env.*
+work_dirs*/
+logs*/
+wandb/
+train_json/
+*.safetensors
+*.bin
+*.pt
+*.pth

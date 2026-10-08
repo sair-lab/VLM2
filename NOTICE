@@ -1,0 +1,106 @@
+VLM2: Vision-Language Memory for Spatial Reasoning
+
+License scope
+-------------
+VLM2's original contributions are provided under Apache License 2.0, except
+for modifications to components that retain their upstream license terms.
+The unmodified Apache License 2.0 text is provided in LICENSE. This NOTICE
+records attribution and component-specific terms; it does not amend LICENSE
+or relicense third-party code, pretrained models, or datasets.
+
+LLaVA, LLaVA-NeXT, VLM-3R, and training utilities
+----------------------------------------------
+The llava/ package builds on LLaVA, LLaVA-NeXT, and VLM-3R and has been
+modified for VLM2's spatial encoder, dual memory, training, and model loading.
+These upstream projects provide their relevant code under Apache License 2.0.
+Source and license references:
+  https://github.com/haotian-liu/LLaVA
+  https://github.com/LLaVA-VL/LLaVA-NeXT
+  https://github.com/VITA-Group/VLM-3R
+
+Retained source notices include:
+  Copyright 2023 Haotian Liu
+  Copyright 2024 Hao Zhang
+  Copyright 2023 Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois,
+    Xuechen Li
+
+llava/train/train.py also acknowledges FastChat and Stanford Alpaca.
+llava/model/multimodal_encoder/siglip_encoder.py acknowledges the IMP vision
+encoder and Hugging Face Transformers; their relevant code uses Apache 2.0.
+  https://github.com/lm-sys/FastChat
+  https://github.com/tatsu-lab/stanford_alpaca
+  https://huggingface.co/MILVLG/imp-v1-3b/blob/main/vision_encoder.py
+  https://github.com/huggingface/transformers
+Existing copyright and attribution headers in source files are retained.
+
+Thinking in Space, lmms-eval, and lm-evaluation-harness
+-----------------------------------------------------
+thinking-in-space/ is derived from Thinking in Space and lmms-eval. Its model
+integration, task selection, and launch scripts have been adapted for VLM2.
+  https://github.com/vision-x-nyu/thinking-in-space
+  https://github.com/EvolvingLMMs-Lab/lmms-eval
+  https://github.com/EleutherAI/lm-evaluation-harness
+
+The original Thinking in Space Apache 2.0 license and the notice
+  Copyright (c) 2024 Vision-X-NYU
+remain in thinking-in-space/LICENSE.
+
+lmms-eval 0.2.3 applies MIT to its evaluation pipeline and Apache 2.0 to its
+added model and task code. Its complete license and the notice
+  Copyright (c) 2024 LMMs-Lab
+are preserved in licenses/lmms-eval-LICENSE.txt.
+
+The lm-evaluation-harness MIT license and the notice
+  Copyright (c) 2020 EleutherAI
+are preserved in licenses/lm-evaluation-harness-LICENSE.txt.
+Hugging Face Datasets code in lmms_eval/api/metrics.py retains its Apache 2.0
+notice, including Copyright 2020 The HuggingFace Datasets Authors and the
+current dataset script contributor.
+
+Pi3 and its incorporated code
+-----------------------------
+Pi3 is a separately fetched Git submodule from https://github.com/yyfz/Pi3,
+pinned at commit 4fbb4d9d3bdd098266be776f926af4b9ec05326b.
+Its original license is reproduced verbatim in licenses/Pi3-LICENSE.txt:
+  Pi3 for non-commercial purposes
+  Copyright (c) 2025 the authors
+  All rights reserved.
+This fixed version must not be described as unrestricted BSD or Apache code.
+
+patches/pi3_vlm2.patch modifies pi3/models/pi3.py,
+pi3/models/layers/pos_embed.py, and pi3/models/layers/camera_head.py for
+VLM2's rotary position encoding and mixed-precision behavior. Those files
+retain the applicable upstream terms and notices after patching.
+
+The incorporated DINOv2 modules and associated transformer layers retain
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+and Apache License 2.0 source notices.
+  https://github.com/facebookresearch/dinov2
+
+Pi3's pi3/models/layers/pos_embed.py retains
+  Copyright (C) 2022-present Naver Corporation. All rights reserved.
+  Licensed under CC BY-NC-SA 4.0 (non-commercial use only).
+The upstream CroCo notice, including its position-embedding source references,
+is preserved in licenses/CroCo-LICENSE.txt.
+  https://github.com/naver/croco
+  https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+
+Pi3's pi3/models/layers/camera_head.py acknowledges adaptation from MAREPO's
+transformer/transformer.py at commit
+9a45e2bb07e5bb8cb997620088d352b439b13e0e.
+The unmodified upstream license is preserved in licenses/MAREPO-LICENSE.txt.
+  https://github.com/nianticlabs/marepo
+  Copyright © Niantic, Inc. 2024. Patent Pending. All rights reserved.
+  Copyright © Niantic, Inc. 2018. All rights reserved.
+MAREPO's license specifies non-commercial use and restrictive source-only
+redistribution terms in section 3. Including this notice does not grant
+additional redistribution or commercial rights. Distribution of components
+derived from MAREPO must comply with that license or obtain permission from
+its rights holder; they are not covered by VLM2's Apache grant.
+
+External weights and data
+-------------------------
+Pi3, LLaVA-NeXT, Qwen2, SigLIP, released adapters, and VSI-Bench/ScanNet data
+retain the terms attached to their respective releases. Downloading or using
+them does not change their licenses, and the root LICENSE grants no rights
+to third-party weights or data beyond their own terms.

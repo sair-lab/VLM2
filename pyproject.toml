@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vlm2"
+version = "0.1.0"
+description = "VLM2 training and VSI-Bench evaluation"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10,<3.11"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: POSIX :: Linux",
+    "License :: OSI Approved :: Apache Software License",
+]
+# FlashAttention is the exact Python 3.10 / Torch 2.5 / Linux x86_64 wheel.
+dependencies = [
+    "torch==2.5.1+cu121",
+    "torchvision==0.20.1+cu121",
+    "accelerate==0.25.0",
+    "peft==0.7.0",
+    "tokenizers==0.15.2",
+    "numpy==1.26.1",
+    "pillow==10.3.0",
+    "opencv-python==4.11.0.86",
+    "decord==0.6.0",
+    "einops==0.6.1",
+    "huggingface-hub==0.23.4",
+    "safetensors==0.6.2",
+    "sentencepiece==0.1.99",
+    "protobuf==5.29.6",
+    "packaging==24.2",
+    "pyyaml==6.0.2",
+    "tqdm==4.65.2",
+    "transformers @ git+https://github.com/huggingface/transformers.git@1c39974a4c4036fd641bc1191cc32799f85715a4",
+    "flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.5cxx11abiFALSE-cp310-cp310-linux_x86_64.whl#sha256=b267f80a08e516292cdd748056a2178a45b8abedf7fca123292eb17c21c8c87c",
+]
+
+[project.optional-dependencies]
+train = [
+    "deepspeed==0.14.4",
+    "datasets==2.16.1",
+    "pyarrow==20.0.0",
+    "fsspec==2023.10.0",
+    "wandb==0.28.1",
+    "bitsandbytes==0.41.0",
+    "pydantic==2.11.7",
+    "ninja==1.11.1.4",
+]
+eval = [
+    "datasets==2.16.1",
+    "pyarrow==20.0.0",
+    "fsspec==2023.10.0",
+    "evaluate==0.4.0",
+    "pandas==2.3.1",
+    "av==15.0.0",
+    "loguru==0.7.3",
+    "hf-transfer==0.1.9",
+    "pytablewriter==1.2.1",
+    "sacrebleu==2.5.1",
+    "scikit-learn==1.2.2",
+    "scipy==1.15.3",
+    "sqlitedict==2.1.0",
+    "tenacity==8.3.0",
+    "pytz==2023.4",
+    "jinja2==3.1.6",
+]
+
+[project.scripts]
+lmms-eval = "lmms_eval.__main__:cli_evaluate"
+
+[tool.setuptools]
+license-files = ["LICENSE", "NOTICE", "licenses/*.txt", "thinking-in-space/LICENSE"]
+
+[tool.setuptools.package-dir]
+pi3 = "Pi3/pi3"
+lmms_eval = "thinking-in-space/lmms_eval"
+
+[tool.setuptools.packages.find]
+where = [".", "Pi3", "thinking-in-space"]
+include = ["llava*", "pi3*", "lmms_eval*"]
+exclude = ["*.__pycache__", "*.__pycache__.*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+lmms_eval = ["tasks/vsibench/*.yaml"]
+
+[tool.black]
+line-length = 240

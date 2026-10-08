@@ -1,0 +1,119 @@
+--- a/pi3/models/pi3.py
++++ b/pi3/models/pi3.py
+@@ -5,7 +5,7 @@
+ 
+ from .dinov2.layers import Mlp
+ from ..utils.geometry import homogenize_points
+-from .layers.pos_embed import RoPE2D, PositionGetter
++from .layers.pos_embed import RoPE2D, PositionGetter, RotaryPositionEmbedding2D
+ from .layers.block import BlockRope
+ from .layers.attention import FlashAttentionRope
+ from .layers.transformer_head import TransformerDecoder, LinearPts3d
+@@ -18,6 +18,7 @@
+             self,
+             pos_type='rope100',
+             decoder_size='large',
++            rope_freq=100,
+         ):
+         super().__init__()
+ 
+@@ -32,14 +33,8 @@
+         #  Positonal Encoding
+         # ----------------------
+         self.pos_type = pos_type if pos_type is not None else 'none'
+-        self.rope=None
+-        if self.pos_type.startswith('rope'): # eg rope100 
+-            if RoPE2D is None: raise ImportError("Cannot find cuRoPE2D, please install it following the README instructions")
+-            freq = float(self.pos_type[len('rope'):])
+-            self.rope = RoPE2D(freq=freq)
+-            self.position_getter = PositionGetter()
+-        else:
+-            raise NotImplementedError
++        self.rope = RotaryPositionEmbedding2D(frequency=rope_freq) if rope_freq > 0 else None
++        self.position_getter = PositionGetter() if self.rope is not None else None
+         
+ 
+         # ----------------------
+--- a/pi3/models/layers/pos_embed.py
++++ b/pi3/models/layers/pos_embed.py
+@@ -11,6 +11,9 @@
+ import numpy as np
+ 
+ import torch
++import torch.nn as nn
++import torch.nn.functional as F
++from typing import Dict, Tuple
+ 
+ # --------------------------------------------------------
+ # 2D sine-cosine position embedding
+@@ -171,4 +174,48 @@
+             y = torch.arange(h, device=device)
+             self.cache_positions[h,w] = torch.cartesian_prod(y, x) # (h, w, 2)
+         pos = self.cache_positions[h,w].view(1, h*w, 2).expand(b, -1, 2).clone()
+-        return pos
+\ No newline at end of file
++        return pos
++
++class RotaryPositionEmbedding2D(nn.Module):
++
++    def __init__(self, frequency: float=100.0, scaling_factor: float=1.0):
++        super().__init__()
++        self.base_frequency = frequency
++        self.scaling_factor = scaling_factor
++        self.frequency_cache: Dict[Tuple, Tuple[torch.Tensor, torch.Tensor]] = {}
++
++    def _compute_frequency_components(self, dim: int, seq_len: int, device: torch.device, dtype: torch.dtype) -> Tuple[torch.Tensor, torch.Tensor]:
++        cache_key = (dim, seq_len, device, dtype)
++        if cache_key not in self.frequency_cache:
++            exponents = torch.arange(0, dim, 2, device=device).float() / dim
++            inv_freq = 1.0 / self.base_frequency ** exponents
++            positions = torch.arange(seq_len, device=device, dtype=inv_freq.dtype)
++            angles = torch.einsum('i,j->ij', positions, inv_freq)
++            angles = angles.to(dtype)
++            angles = torch.cat((angles, angles), dim=-1)
++            cos_components = angles.cos().to(dtype)
++            sin_components = angles.sin().to(dtype)
++            self.frequency_cache[cache_key] = (cos_components, sin_components)
++        return self.frequency_cache[cache_key]
++
++    @staticmethod
++    def _rotate_features(x: torch.Tensor) -> torch.Tensor:
++        feature_dim = x.shape[-1]
++        (x1, x2) = (x[..., :feature_dim // 2], x[..., feature_dim // 2:])
++        return torch.cat((-x2, x1), dim=-1)
++
++    def _apply_1d_rope(self, tokens: torch.Tensor, positions: torch.Tensor, cos_comp: torch.Tensor, sin_comp: torch.Tensor) -> torch.Tensor:
++        cos = F.embedding(positions, cos_comp)[:, None, :, :]
++        sin = F.embedding(positions, sin_comp)[:, None, :, :]
++        return tokens * cos + self._rotate_features(tokens) * sin
++
++    def forward(self, tokens: torch.Tensor, positions: torch.Tensor) -> torch.Tensor:
++        assert tokens.size(-1) % 2 == 0, 'Feature dimension must be even'
++        assert positions.ndim == 3 and positions.shape[-1] == 2, 'Positions must have shape (batch_size, n_tokens, 2)'
++        feature_dim = tokens.size(-1) // 2
++        max_position = int(positions.max()) + 1
++        (cos_comp, sin_comp) = self._compute_frequency_components(feature_dim, max_position, tokens.device, tokens.dtype)
++        (vertical_features, horizontal_features) = tokens.chunk(2, dim=-1)
++        vertical_features = self._apply_1d_rope(vertical_features, positions[..., 0], cos_comp, sin_comp)
++        horizontal_features = self._apply_1d_rope(horizontal_features, positions[..., 1], cos_comp, sin_comp)
++        return torch.cat((vertical_features, horizontal_features), dim=-1)
+--- a/pi3/models/layers/camera_head.py
++++ b/pi3/models/layers/camera_head.py
+@@ -57,14 +57,14 @@
+ 
+         feat = self.more_mlps(feat)  # [B, D_]
+         with torch.amp.autocast(device_type='cuda', enabled=False):
+-            out_t = self.fc_t(feat.float())  # [B,3]
+-            out_r = self.fc_rot(feat.float())  # [B,9]
++            out_t = self.fc_t(feat)  # [B,3]
++            out_r = self.fc_rot(feat)  # [B,9]
+             pose = self.convert_pose_to_4x4(BN, out_r, out_t, feat.device)
+ 
+         return pose
+ 
+     def convert_pose_to_4x4(self, B, out_r, out_t, device):
+-        out_r = self.svd_orthogonalize(out_r)  # [N,3,3]
++        out_r = self.svd_orthogonalize(out_r.float())  # [N,3,3]
+         pose = torch.zeros((B, 4, 4), device=device)
+         pose[:, :3, :3] = out_r
+         pose[:, :3, 3] = out_t
